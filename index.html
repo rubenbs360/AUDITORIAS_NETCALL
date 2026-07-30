@@ -388,10 +388,19 @@
                                         <option value="Suspencion">Suspensión</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label for="attachment-file">Agregar foto / Documento adjunto</label>
-                                    <input type="file" id="attachment-file" accept="image/*,application/pdf">
-                                    <span class="card-desc" style="margin-top: 2px;">Formatos: Imagen (PNG/JPG) o PDF.</span>
+                                <div class="form-group full-width" style="grid-column: span 3;">
+                                    <label>Agregar foto / Documento adjunto</label>
+                                    <div id="drop-zone" class="drop-zone" style="border: 2px dashed rgba(255,255,255,0.15); padding: 20px; border-radius: 8px; text-align: center; background: rgba(255,255,255,0.02); cursor: pointer; transition: all 0.3s ease; position: relative;">
+                                        <p id="drop-zone-text" style="margin: 0; color: var(--text-muted); font-size: 14px;">Arrastra tu captura aquí, haz clic para seleccionar, o <strong>presiona Ctrl+V para pegar una captura copiada</strong>.</p>
+                                        <input type="file" id="attachment-file" accept="image/*,application/pdf" style="display: none;">
+                                        <div id="file-preview-container" class="hidden" style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                            <span id="preview-file-name" style="font-weight: 600; font-size: 13px; color: var(--primary);"></span>
+                                            <button type="button" id="remove-file-btn" style="background: var(--red); color: white; border: none; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px;">Quitar</button>
+                                        </div>
+                                    </div>
+                                    <span class="card-desc" style="margin-top: 5px; color: #ff8888; font-weight: 600; display: block;">
+                                        ⚠️ IMPORTANTE: Se debe visualizar la Fecha y Hora en la captura.
+                                    </span>
                                 </div>
                             </div>
                         </div>

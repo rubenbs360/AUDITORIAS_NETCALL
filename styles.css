@@ -649,3 +649,13 @@ tr:hover {
     color: var(--text-muted);
 }
 
+.drop-zone.hover {
+    border-color: var(--primary) !important;
+    background: rgba(59, 130, 246, 0.08) !important;
+}
+
+.drop-zone:hover {
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+}
+

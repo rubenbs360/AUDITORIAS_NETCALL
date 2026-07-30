@@ -40,6 +40,9 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Inicializar opciones de responsabilidad
     handleCallTypeChange();
+    
+    // Configurar zona de arrastrar y pegar
+    initUploadZone();
 });
 
 // Función para cambiar de pestaña (SPA)
@@ -371,14 +374,13 @@ async function handleFormSubmit(e) {
     submitBtn.disabled = true;
     submitBtn.innerText = "Guardando auditoría...";
     
-    // Procesar archivo adjunto si existe
+    // Procesar archivo adjunto si existe (soporta archivos arrastrados, seleccionados o pegados)
     let fileBase64 = "";
     let fileName = "";
     let fileMimeType = "";
-    const fileInput = document.getElementById("attachment-file");
     
-    if (fileInput.files.length > 0) {
-        const file = fileInput.files[0];
+    if (uploadedFile) {
+        const file = uploadedFile;
         fileName = file.name;
         fileMimeType = file.type;
         try {
@@ -461,7 +463,9 @@ async function handleFormSubmit(e) {
         document.getElementById("cloud-url").value = "";
         document.getElementById("feedback-email").value = "No";
         document.getElementById("admin-sanction").value = "No aplica";
-        document.getElementById("attachment-file").value = "";
+        
+        // Limpiar el archivo adjunto/pegado de memoria y UI
+        clearUploadedFile();
         
         // Ocultar sección de entrega al resetear
         document.getElementById("delivery-section").classList.add("hidden");
@@ -966,17 +970,27 @@ function renderListTab() {
         const uploadTime = row["fecha registro"] || row.fecha_registro || "-";
         const auditDate = row["fecha auditoria"] || row.fecha_auditoria || row.fecha || "-";
         
+        // Corregir llave normalizada de N°LLAMADA que se limpia a "nllamada" por los caracteres especiales
+        const phoneNum = row.nllamada || row["nllamada"] || row["n° llamada"] || row["n°llamada"] || row["n_llamada"] || "-";
+        
+        // Crear enlaces: Purecloud y Evidencia de Drive (si existe)
+        const driveUrl = row["documento adjunto"] || row.documento_adjunto || row["documento_adjunto"] || "";
+        let linksHtml = `<a href="${url}" target="_blank" class="link-btn" style="display:inline-block; margin-bottom: 4px;">Ver Purecloud ↗</a>`;
+        if (driveUrl && driveUrl.startsWith("http")) {
+            linksHtml += `<a href="${driveUrl}" target="_blank" class="link-btn" style="background: var(--amber); display:inline-block;">Ver Evidencia ↗</a>`;
+        }
+        
         return `
             <tr>
                 <td><strong>${auditDate}</strong><br><small style="color:var(--text-muted); font-size:11px">Registro: ${uploadTime}</small></td>
                 <td>${row.supervisor || "-"}</td>
                 <td>${row["nombre asesor"] || "-"}<br><small style="color:var(--text-muted)">DNI: ${row["dni asesor"] || "-"}</small></td>
-                <td>${row["n° llamada"] || row["n_llamada"] || "-"}</td>
+                <td>${phoneNum}</td>
                 <td><span style="color: ${callType === 'Venta' ? 'var(--primary)' : 'var(--text-muted)'}; font-weight:600">${callType}</span></td>
                 <td><span class="quality-badge ${compliance >= 80 ? 'high' : compliance >= 60 ? 'mid' : 'low'}">${compliance.toFixed(0)}%</span></td>
                 <td>${row.lider || "-"}</td>
                 <td><span class="resp-item-badge">${row.cuartil || "-"}</span></td>
-                <td><a href="${url}" target="_blank" class="link-btn">Ver Purecloud ↗</a></td>
+                <td>${linksHtml}</td>
             </tr>
         `;
     }).join('');
@@ -985,4 +999,95 @@ function renderListTab() {
 function handleListSearch() {
     listSearchQuery = document.getElementById("search-list-input").value;
     renderListTab();
+}
+
+// ========================================================
+// FUNCIONES COMPLETAS DE CARGA DE ARCHIVOS (DROP Y pegar)
+// ========================================================
+let uploadedFile = null;
+
+function initUploadZone() {
+    const dropZone = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("attachment-file");
+    const dropZoneText = document.getElementById("drop-zone-text");
+    const filePreviewContainer = document.getElementById("file-preview-container");
+    const previewFileName = document.getElementById("preview-file-name");
+    const removeFileBtn = document.getElementById("remove-file-btn");
+
+    if (!dropZone) return;
+
+    // Clic en la zona abre el selector de archivo
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    // Eventos de arrastre
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("hover");
+    });
+    dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("hover");
+    });
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("hover");
+        if (e.dataTransfer.files.length > 0) {
+            handleUploadedFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    // Evento de pegado (Ctrl+V) en cualquier parte del formulario
+    window.addEventListener("paste", (e) => {
+        if (currentTab !== 'form') return;
+        
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+                const file = items[i].getAsFile();
+                // Nombre automático con fecha/hora
+                const name = `captura_pegada_${new Date().toISOString().slice(0,10)}_${Math.floor(Math.random()*1000)}.png`;
+                const renamedFile = new File([file], name, { type: "image/png" });
+                handleUploadedFile(renamedFile);
+            }
+        }
+    });
+
+    fileInput.addEventListener("change", () => {
+        if (fileInput.files.length > 0) {
+            handleUploadedFile(fileInput.files[0]);
+        }
+    });
+
+    removeFileBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Evitar abrir selector al hacer clic en Quitar
+        clearUploadedFile();
+    });
+}
+
+function handleUploadedFile(file) {
+    const dropZoneText = document.getElementById("drop-zone-text");
+    const filePreviewContainer = document.getElementById("file-preview-container");
+    const previewFileName = document.getElementById("preview-file-name");
+
+    uploadedFile = file;
+    dropZoneText.classList.add("hidden");
+    filePreviewContainer.classList.remove("hidden");
+    previewFileName.innerText = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+}
+
+function removeHoverEffect() {
+    const dropZone = document.getElementById("drop-zone");
+    if (dropZone) dropZone.classList.remove("hover");
+}
+
+function clearUploadedFile() {
+    const fileInput = document.getElementById("attachment-file");
+    const dropZoneText = document.getElementById("drop-zone-text");
+    const filePreviewContainer = document.getElementById("file-preview-container");
+    const previewFileName = document.getElementById("preview-file-name");
+
+    uploadedFile = null;
+    fileInput.value = "";
+    dropZoneText.classList.remove("hidden");
+    filePreviewContainer.classList.add("hidden");
+    previewFileName.innerText = "";
 }
