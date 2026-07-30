@@ -730,9 +730,34 @@ function renderDashboard() {
         
     // --- TABLA CONTROL DIARIO Y TIPIFICACIÓN ---
     const controlGroups = {};
+    
+    // 1. Inicializar con todos los supervisores y líderes existentes en la Nómina (para que salgan con 0)
+    const allSupervisorsFromNomina = {};
+    nominaData.forEach(row => {
+        const sup = row.sup || row.supervisor;
+        const lid = row.lider || row.líder || "Sin Líder";
+        if (sup) {
+            allSupervisorsFromNomina[sup] = lid;
+        }
+    });
+    
+    Object.entries(allSupervisorsFromNomina).forEach(([sup, lid]) => {
+        controlGroups[sup] = {
+            name: sup,
+            lider: lid,
+            total: 0,
+            venta: 0,
+            noVenta: 0,
+            errorAgente: 0,
+            errorCliente: 0,
+            errorEntel: 0
+        };
+    });
+    
+    // 2. Acumular datos de las auditorías filtradas
     filtered.forEach(row => {
         const sup = row.supervisor || "Indefinido";
-        const lid = row.lider || "-";
+        const lid = row.lider || "Sin Líder";
         
         if (!controlGroups[sup]) {
             controlGroups[sup] = {
@@ -767,29 +792,85 @@ function renderDashboard() {
         }
     });
     
+    // 3. Agrupar por Líder para renderizado jerárquico
+    const leaderGroups = {};
+    Object.values(controlGroups).forEach(sup => {
+        const lid = sup.lider;
+        if (!leaderGroups[lid]) {
+            leaderGroups[lid] = {
+                name: lid,
+                total: 0,
+                venta: 0,
+                noVenta: 0,
+                errorAgente: 0,
+                errorCliente: 0,
+                errorEntel: 0,
+                supervisors: []
+            };
+        }
+        
+        const lg = leaderGroups[lid];
+        lg.supervisors.push(sup);
+        lg.total += sup.total;
+        lg.venta += sup.venta;
+        lg.noVenta += sup.noVenta;
+        lg.errorAgente += sup.errorAgente;
+        lg.errorCliente += sup.errorCliente;
+        lg.errorEntel += sup.errorEntel;
+    });
+    
     const controlTbody = document.getElementById("supervisor-control-tbody");
-    controlTbody.innerHTML = Object.values(controlGroups)
-        .sort((a,b) => b.total - a.total)
-        .map(sup => {
-            const pctVenta = sup.total > 0 ? (sup.venta / sup.total) * 100 : 0;
-            const pctNoVenta = sup.total > 0 ? (sup.noVenta / sup.total) * 100 : 0;
-            const pctAgente = sup.total > 0 ? (sup.errorAgente / sup.total) * 100 : 0;
-            const pctCliente = sup.total > 0 ? (sup.errorCliente / sup.total) * 100 : 0;
-            const pctEntel = sup.total > 0 ? (sup.errorEntel / sup.total) * 100 : 0;
+    
+    // Generar el HTML ordenando por líderes con mayor volumen
+    let html = "";
+    Object.values(leaderGroups)
+        .sort((a, b) => b.total - a.total)
+        .forEach(lg => {
+            const lgVentaPct = lg.total > 0 ? (lg.venta / lg.total) * 100 : 0;
+            const lgNoVentaPct = lg.total > 0 ? (lg.noVenta / lg.total) * 100 : 0;
+            const lgAgentePct = lg.total > 0 ? (lg.errorAgente / lg.total) * 100 : 0;
+            const lgClientePct = lg.total > 0 ? (lg.errorCliente / lg.total) * 100 : 0;
+            const lgEntelPct = lg.total > 0 ? (lg.errorEntel / lg.total) * 100 : 0;
             
-            return `
-                <tr>
-                    <td>${sup.lider}</td>
-                    <td><strong>${sup.name}</strong></td>
-                    <td>${sup.total} auditorías</td>
-                    <td>${pctVenta.toFixed(0)}%</td>
-                    <td>${pctNoVenta.toFixed(0)}%</td>
-                    <td><span class="resp-item-badge ${sup.errorAgente > 0 ? 'low' : ''}">${pctAgente.toFixed(0)}%</span></td>
-                    <td>${pctCliente.toFixed(0)}%</td>
-                    <td>${pctEntel.toFixed(0)}%</td>
+            // Fila del Líder (Header del grupo con estilo azulado de alta prioridad)
+            html += `
+                <tr class="leader-row" style="background: rgba(59, 130, 246, 0.08); font-weight: bold; color: var(--primary);">
+                    <td colspan="2">▼ ${lg.name.toUpperCase()}</td>
+                    <td>${lg.total} auditorías</td>
+                    <td>${lg.total > 0 ? lgVentaPct.toFixed(0) + '%' : '-'}</td>
+                    <td>${lg.total > 0 ? lgNoVentaPct.toFixed(0) + '%' : '-'}</td>
+                    <td>${lg.total > 0 ? lgAgentePct.toFixed(0) + '%' : '-'}</td>
+                    <td>${lg.total > 0 ? lgClientePct.toFixed(0) + '%' : '-'}</td>
+                    <td>${lg.total > 0 ? lgEntelPct.toFixed(0) + '%' : '-'}</td>
                 </tr>
             `;
-        }).join('');
+            
+            // Supervisores ordenados por volumen dentro de su líder
+            lg.supervisors
+                .sort((a, b) => b.total - a.total)
+                .forEach(sup => {
+                    const pctVenta = sup.total > 0 ? (sup.venta / sup.total) * 100 : 0;
+                    const pctNoVenta = sup.total > 0 ? (sup.noVenta / sup.total) * 100 : 0;
+                    const pctAgente = sup.total > 0 ? (sup.errorAgente / sup.total) * 100 : 0;
+                    const pctCliente = sup.total > 0 ? (sup.errorCliente / sup.total) * 100 : 0;
+                    const pctEntel = sup.total > 0 ? (sup.errorEntel / sup.total) * 100 : 0;
+                    
+                    html += `
+                        <tr class="supervisor-row">
+                            <td style="color: var(--text-muted); font-size: 13px; padding-left: 20px;">—</td>
+                            <td style="padding-left: 15px;">${sup.name}</td>
+                            <td><span style="font-weight: ${sup.total > 0 ? '600' : 'normal'}; color: ${sup.total === 0 ? 'var(--red)' : 'var(--text)'};">${sup.total} auditorías</span></td>
+                            <td>${sup.total > 0 ? pctVenta.toFixed(0) + '%' : '-'}</td>
+                            <td>${sup.total > 0 ? pctNoVenta.toFixed(0) + '%' : '-'}</td>
+                            <td>${sup.total > 0 ? `<span class="resp-item-badge ${sup.errorAgente > 0 ? 'low' : ''}">${pctAgente.toFixed(0)}%</span>` : '-'}</td>
+                            <td>${sup.total > 0 ? pctCliente.toFixed(0) + '%' : '-'}</td>
+                            <td>${sup.total > 0 ? pctEntel.toFixed(0) + '%' : '-'}</td>
+                        </tr>
+                    `;
+                });
+        });
+        
+    controlTbody.innerHTML = html;
 }
 
 // Poblar selects de filtros del Dashboard
