@@ -727,6 +727,69 @@ function renderDashboard() {
                 </tr>
             `;
         }).join('');
+        
+    // --- TABLA CONTROL DIARIO Y TIPIFICACIÓN ---
+    const controlGroups = {};
+    filtered.forEach(row => {
+        const sup = row.supervisor || "Indefinido";
+        const lid = row.lider || "-";
+        
+        if (!controlGroups[sup]) {
+            controlGroups[sup] = {
+                name: sup,
+                lider: lid,
+                total: 0,
+                venta: 0,
+                noVenta: 0,
+                errorAgente: 0,
+                errorCliente: 0,
+                errorEntel: 0
+            };
+        }
+        
+        const grp = controlGroups[sup];
+        grp.total++;
+        
+        const callType = row["tipo de llamada"] || row["tipo_llamada"] || "No venta";
+        if (callType === "Venta") {
+            grp.venta++;
+        } else {
+            grp.noVenta++;
+        }
+        
+        const resp = String(row["responsabilidad"] || row["responsabilidad - no venta"] || "").trim().toLowerCase();
+        if (resp === "asesor" || resp === "agente") {
+            grp.errorAgente++;
+        } else if (resp === "cliente") {
+            grp.errorCliente++;
+        } else if (resp === "entel") {
+            grp.errorEntel++;
+        }
+    });
+    
+    const controlTbody = document.getElementById("supervisor-control-tbody");
+    controlTbody.innerHTML = Object.values(controlGroups)
+        .sort((a,b) => b.total - a.total)
+        .map(sup => {
+            const pctVenta = sup.total > 0 ? (sup.venta / sup.total) * 100 : 0;
+            const pctNoVenta = sup.total > 0 ? (sup.noVenta / sup.total) * 100 : 0;
+            const pctAgente = sup.total > 0 ? (sup.errorAgente / sup.total) * 100 : 0;
+            const pctCliente = sup.total > 0 ? (sup.errorCliente / sup.total) * 100 : 0;
+            const pctEntel = sup.total > 0 ? (sup.errorEntel / sup.total) * 100 : 0;
+            
+            return `
+                <tr>
+                    <td>${sup.lider}</td>
+                    <td><strong>${sup.name}</strong></td>
+                    <td>${sup.total} auditorías</td>
+                    <td>${pctVenta.toFixed(0)}%</td>
+                    <td>${pctNoVenta.toFixed(0)}%</td>
+                    <td><span class="resp-item-badge ${sup.errorAgente > 0 ? 'low' : ''}">${pctAgente.toFixed(0)}%</span></td>
+                    <td>${pctCliente.toFixed(0)}%</td>
+                    <td>${pctEntel.toFixed(0)}%</td>
+                </tr>
+            `;
+        }).join('');
 }
 
 // Poblar selects de filtros del Dashboard
