@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Auditorías y Calidad - Outbound Entel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">✓</div>
+                <h2>Control de Auditorías</h2>
+            </div>
+            <nav class="nav-links">
+                <button class="nav-btn active" id="tab-btn-form" onclick="switchTab('form')">
+                    <span class="icon">📝</span> Realizar Auditoría
+                </button>
+                <button class="nav-btn" id="tab-btn-dashboard" onclick="switchTab('dashboard')">
+                    <span class="icon">📊</span> Panel de KPIs
+                </button>
+                <button class="nav-btn" id="tab-btn-list" onclick="switchTab('list')">
+                    <span class="icon">🔍</span> Listado Detallado
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <p>Auditorías Web App v1.0</p>
+                <span class="status-badge" id="sheet-status">● Sincronizado</span>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-header">
+                <div class="header-title">
+                    <h1 id="page-title">Realizar Auditoría de Calidad</h1>
+                    <p id="page-subtitle">Evaluación en tiempo real del speech y procesos de ventas outbound</p>
+                </div>
+            </header>
+
+            <!-- TAB 1: FORMULARIO -->
+            <section id="tab-form" class="tab-pane active">
+                <div class="card form-card">
+                    <div class="card-header">
+                        <h3>Registro de Auditoría</h3>
+                        <span class="card-desc">Complete la información de la llamada evaluada. El supervisor y metadatos se autocompletarán de acuerdo a la nómina del día elegido.</span>
+                    </div>
+
+                    <form id="audit-form" onsubmit="handleFormSubmit(event)">
+                        <!-- Alertas de carga/error -->
+                        <div id="form-alert" class="alert hidden"></div>
+
+                        <!-- Sección: Identificación -->
+                        <div class="form-section">
+                            <h4 class="section-title">1. Datos de Identificación</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="audit-date">Fecha de Auditoría *</label>
+                                    <input type="date" id="audit-date" required onchange="handleIdentityChange()">
+                                </div>
+                                <div class="form-group relative-container">
+                                    <label for="advisor-dni">DNI Asesor *</label>
+                                    <div class="input-with-action">
+                                        <input type="text" id="advisor-dni" placeholder="Buscar por DNI..." required autocomplete="off" oninput="handleSearchInput('dni')">
+                                        <span class="loader-inline hidden" id="dni-loader"></span>
+                                    </div>
+                                    <div class="suggestions-box hidden" id="dni-suggestions"></div>
+                                </div>
+                                <div class="form-group relative-container">
+                                    <label for="advisor-name">Nombre del Asesor *</label>
+                                    <div class="input-with-action">
+                                        <input type="text" id="advisor-name" placeholder="Buscar por Nombre/Apellido..." required autocomplete="off" oninput="handleSearchInput('name')">
+                                        <span class="loader-inline hidden" id="name-loader"></span>
+                                    </div>
+                                    <div class="suggestions-box hidden" id="name-suggestions"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="advisor-supervisor">Supervisor Asignado</label>
+                                    <input type="text" id="advisor-supervisor" placeholder="Supervisor asignado" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="advisor-lider">Líder Asignado</label>
+                                    <input type="text" id="advisor-lider" placeholder="Líder asignado" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="advisor-antiguedad">Antigüedad</label>
+                                    <input type="text" id="advisor-antiguedad" placeholder="Antigüedad del asesor" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="advisor-cuartil">Cuartil</label>
+                                    <input type="text" id="advisor-cuartil" placeholder="Cuartil" readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="advisor-gestion">Gestión</label>
+                                    <input type="text" id="advisor-gestion" placeholder="Gestión" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección: Datos Llamada -->
+                        <div class="form-section">
+                            <h4 class="section-title">2. Detalles de la Llamada</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="call-number">N° Llamada / Teléfono Cliente *</label>
+                                    <input type="text" id="call-number" placeholder="Ej: 941474586" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="call-type">Tipo de Llamada *</label>
+                                    <select id="call-type" required onchange="handleCallTypeChange()">
+                                        <option value="">Seleccione...</option>
+                                        <option value="No venta">No venta</option>
+                                        <option value="Venta">Venta</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="no-sale-responsibility">Responsabilidad - NO VENTA</label>
+                                    <select id="no-sale-responsibility">
+                                        <option value="No aplica">No aplica (Venta)</option>
+                                        <option value="Asesor">Asesor</option>
+                                        <option value="Cliente">Cliente</option>
+                                        <option value="Entel">Entel</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cloud-url">URL Cloud (Purecloud/Genesys) *</label>
+                                    <input type="url" id="cloud-url" placeholder="https://apps.mypurecloud.com/..." required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección: Checklist de Calidad -->
+                        <div class="form-section">
+                            <h4 class="section-title">3. Checklist de Proceso y Calidad</h4>
+                            <div class="checklist-grid">
+                                <!-- 1. Presentación Speech -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>PRESENTACION- SPEECH CORRECTO?</strong>
+                                        <span>Saludo correcto y presentación de marca.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-presentacion-speech" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 2. Presentación Impacto -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>PRESENTACION- Genera Impacto e interés ?</strong>
+                                        <span>Consigue captar la atención en los primeros segundos.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-presentacion-impacto" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 3. Sondeo -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Sondeo - Preguntas de necesidad?</strong>
+                                        <span>Indaga sobre el operador actual y plan del cliente.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-sondeo" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 4. Ofrece Multipedido -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Ofrece Multipedido?</strong>
+                                        <span>Consulta por líneas adicionales para familiares.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-multipedido" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 5. Rebate Objeciones -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Rebate objeciones?</strong>
+                                        <span>Intenta revertir la negativa del cliente al menos 2 veces.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-rebate" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 6. Cierre -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Cierre - Preguntas cerradas?</strong>
+                                        <span>Induce a la aceptación con cierres directos.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-cierre" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 7. Escucha Activa -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Asesor tiene escucha activa?</strong>
+                                        <span>Presta atención a las respuestas del cliente para argumentar.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-escucha" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 8. Actitud Comercial -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Actitud Comercial?</strong>
+                                        <span>Tono de voz, empatía y predisposición de venta.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-actitud" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 9. Ofrecimiento Direccionado -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Ofrecimiento direccionado?</strong>
+                                        <span>Escalera de Ofrecimiento entrega: Expres- programado- tienda</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-ofrecimiento" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 10. Ofrece Express -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>Ofrece Express?</strong>
+                                        <span>Ofrece opción de delivery rápido si aplica.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-expres" required>
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección: Checklist de Entrega (Solo Ventas) -->
+                        <div class="form-section hidden" id="delivery-section">
+                            <h4 class="section-title">3.1. Validación de Entrega (Solo Ventas)</h4>
+                            <div class="checklist-grid">
+                                <!-- 1. Dirección -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>¿Valida dirección exacta, referencia y cobertura del distrito?</strong>
+                                        <span>Confirma detalles de ubicación y factibilidad de entrega.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-entrega-direccion">
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 2. Horario -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>¿Alinea fecha y rango horario de entrega?</strong>
+                                        <span>Establece cuándo debe estar presente el cliente para recibir.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-entrega-horario">
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 3. Contacto Adicional -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>¿Solicita un número telefónico de contacto adicional?</strong>
+                                        <span>Asegura una vía de comunicación alterna para el Courier.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-entrega-contacto">
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- 4. DNI y Biometría -->
+                                <div class="checklist-item">
+                                    <div class="chk-label">
+                                        <strong>¿Informa que se requiere DNI físico vigente y validación biométrica?</strong>
+                                        <span>Advierte al cliente sobre los requisitos legales al recibir el chip.</span>
+                                    </div>
+                                    <div class="chk-options">
+                                        <select id="chk-entrega-biometria">
+                                            <option value="Cumple">Cumple</option>
+                                            <option value="No cumple">No cumple</option>
+                                            <option value="No aplica">No aplica</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección: Comentarios y Feedback -->
+                        <div class="form-section">
+                            <h4 class="section-title">4. Resumen y Feedback</h4>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="call-summary">Resumen de la Llamada *</label>
+                                    <textarea id="call-summary" rows="3" placeholder="Describa brevemente lo ocurrido en la llamada..." required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="improvement-tips">Tips de Mejora / Compromisos *</label>
+                                    <textarea id="improvement-tips" rows="3" placeholder="Puntos específicos a reforzar con el asesor..." required></textarea>
+                                </div>
+                            </div>
+                            
+                            <div class="form-grid" style="margin-top: 20px;">
+                                <div class="form-group">
+                                    <label for="feedback-email">¿Se envió correo de feedback al agente? *</label>
+                                    <select id="feedback-email" required>
+                                        <option value="No">No</option>
+                                        <option value="Si">Sí</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-sanction">¿Se aplicó sanción administrativa? *</label>
+                                    <select id="admin-sanction" required>
+                                        <option value="No aplica">No aplica</option>
+                                        <option value="Feedback">Feedback</option>
+                                        <option value="Carta de compromiso">Carta de compromiso</option>
+                                        <option value="Memorandum">Memorándum</option>
+                                        <option value="Suspencion">Suspensión</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="attachment-file">Agregar foto / Documento adjunto</label>
+                                    <input type="file" id="attachment-file" accept="image/*,application/pdf">
+                                    <span class="card-desc" style="margin-top: 2px;">Formatos: Imagen (PNG/JPG) o PDF.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón de Envío -->
+                        <div class="form-actions">
+                            <button type="submit" class="submit-btn" id="submit-btn">Guardar Auditoría</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- TAB 2: DASHBOARD -->
+            <section id="tab-dashboard" class="tab-pane">
+                <!-- Filtros del Dashboard -->
+                <div class="card filter-card">
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="form-group">
+                            <label for="dash-filter-lider">Líder</label>
+                            <select id="dash-filter-lider" onchange="renderDashboard()">
+                                <option value="TODOS">Todos los Líderes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dash-filter-supervisor">Supervisor</label>
+                            <select id="dash-filter-supervisor" onchange="renderDashboard()">
+                                <option value="TODOS">Todos los Supervisores</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dash-filter-cuartil">Cuartil</label>
+                            <select id="dash-filter-cuartil" onchange="renderDashboard()">
+                                <option value="TODOS">Todos los Cuartiles</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dash-filter-antiguedad">Antigüedad</label>
+                            <select id="dash-filter-antiguedad" onchange="renderDashboard()">
+                                <option value="TODOS">Todas las Antigüedades</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dash-filter-date-start">Fecha Desde</label>
+                            <input type="date" id="dash-filter-date-start" onchange="renderDashboard()">
+                        </div>
+                        <div class="form-group">
+                            <label for="dash-filter-date-end">Fecha Hasta</label>
+                            <input type="date" id="dash-filter-date-end" onchange="renderDashboard()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <span class="kpi-label">Auditorías Totales</span>
+                        <h3 class="kpi-value" id="kpi-total-audits">0</h3>
+                        <span class="kpi-subtext" id="kpi-subtext-audits">Registradas en Sheets</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Cumplimiento Promedio</span>
+                        <h3 class="kpi-value text-emerald" id="kpi-compliance-avg">0.0%</h3>
+                        <span class="kpi-subtext">Speech & Procesos</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Ratio de Conversión (Llamadas Auditadas)</span>
+                        <h3 class="kpi-value text-blue" id="kpi-conversion-rate">0.0%</h3>
+                        <span class="kpi-subtext" id="kpi-subtext-sales">0 Ventas de 0 llamadas</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-label">Crítica de No Venta</span>
+                        <h3 class="kpi-value text-orange" id="kpi-no-sale-critica">0%</h3>
+                        <span class="kpi-subtext">Responsabilidad Asesor</span>
+                    </div>
+                </div>
+
+                <!-- Detalles e Indicadores por Criterio -->
+                <div class="dashboard-grid-two">
+                    <!-- Cumplimiento de Criterios (Checklist) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Cumplimiento por Criterio Evaluado</h3>
+                            <span class="card-desc">% de cumplimiento sobre el total de aplicables</span>
+                        </div>
+                        <div class="checklist-metrics-container" id="criteria-metrics-list">
+                            <!-- Inyectado dinámetamente -->
+                        </div>
+                    </div>
+
+                    <!-- Distribución por Supervisor o Responsabilidad -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Responsabilidad de la No Venta</h3>
+                            <span class="card-desc">Causas identificadas por los supervisores</span>
+                        </div>
+                        <div class="responsibility-metrics-container" id="responsibility-list">
+                            <!-- Inyectado dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Clasificación de Calidad por Supervisor -->
+                <div class="card full-width" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <h3>Desempeño de Calidad por Supervisor</h3>
+                        <span class="card-desc">Ranking de notas y volumen de auditorías de cada supervisor de equipo</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="ranking-table">
+                            <thead>
+                                <tr>
+                                    <th>Supervisor</th>
+                                    <th>Líder</th>
+                                    <th>Auditorías Realizadas</th>
+                                    <th>% Cumplimiento Speech</th>
+                                    <th>% Actitud Comercial</th>
+                                    <th>% Rebate de Objeciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="supervisor-ranking-tbody">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: LISTADO -->
+            <section id="tab-list" class="tab-pane">
+                <div class="card full-width">
+                    <div class="card-header search-header">
+                        <div>
+                            <h3>Historial de Auditorías</h3>
+                            <span class="card-desc">Registro histórico completo leído en tiempo real de Google Sheets</span>
+                        </div>
+                        <div class="search-box">
+                            <input type="text" id="search-list-input" placeholder="Buscar por asesor, DNI o supervisor..." oninput="handleListSearch()">
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="list-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha Aud. / Registro</th>
+                                    <th>Supervisor</th>
+                                    <th>Asesor (DNI)</th>
+                                    <th>N° Teléfono</th>
+                                    <th>Llamada</th>
+                                    <th>Cumplimiento %</th>
+                                    <th>Líder</th>
+                                    <th>Cuartil</th>
+                                    <th>Grabación</th>
+                                </tr>
+                            </thead>
+                            <tbody id="list-tbody">
+                                <!-- Inyectado dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Script principal de la aplicación -->
+    <script src="app.js"></script>
+</body>
+</html>
