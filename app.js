@@ -4,14 +4,14 @@
 // CONFIGURACIÓN GLOBAL - ¡Modifica aquí tus URLs!
 // ========================================================
 // Reemplaza con la URL que te dará Google Apps Script al implementar como "Web App"
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby7bUuYF-1vGqY5J9dY547uX8U4P9vC/exec"; 
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyVoEyabbadrOSijRcLSaxIxjOd815dtxY-f0US6ljkRUg3GrfKvMN7VfW9LOAEHzs/exec"; 
 
 // Reemplaza con tu enlace de hoja de cálculo compartida en formato exportación CSV
 // gid=0 es la pestaña 'Auditorias'
-const CSV_URL_AUDITS = "https://docs.google.com/spreadsheets/d/1UI8beJfOM-BcuIaEuScivx4ZapN2GaX2oKq1GrKwM0M/export?format=csv&gid=0";
+const CSV_URL_AUDITS = "https://docs.google.com/spreadsheets/d/1wAmkSprEeZ_T-gx-nYhdliR2FmHr_wnZFQLupYogfPc/export?format=csv&gid=0";
 
-// Cambia el gid por el de tu pestaña de 'Nomina' (ej: gid=1234567)
-const CSV_URL_NOMINA = "https://docs.google.com/spreadsheets/d/1UI8beJfOM-BcuIaEuScivx4ZapN2GaX2oKq1GrKwM0M/export?format=csv&gid=111928092"; 
+// Cambia el gid por el de tu pestaña de 'Nomina' (el de tu hoja NOMINA es 5942816)
+const CSV_URL_NOMINA = "https://docs.google.com/spreadsheets/d/1wAmkSprEeZ_T-gx-nYhdliR2FmHr_wnZFQLupYogfPc/export?format=csv&gid=5942816"; 
 
 
 // ========================================================
