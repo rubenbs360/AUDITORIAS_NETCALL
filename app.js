@@ -740,6 +740,17 @@ function renderDashboard() {
     nominaData.forEach(row => {
         const sup = row.sup || row.supervisor;
         const lid = row.lider || row.líder || "Sin Líder";
+        
+        // Excluir grupos OJT y etiquetas de "Operacion"
+        const lowerLid = String(lid).toLowerCase();
+        const lowerSup = String(sup).toLowerCase();
+        if (lowerLid.includes("ojt") || lowerLid.includes("operacion") || lowerLid.includes("operación") || lowerLid === "-" || lowerLid === "sin líder") {
+            return;
+        }
+        if (lowerSup.includes("ojt") || lowerSup.includes("operacion") || lowerSup.includes("operación")) {
+            return;
+        }
+        
         if (sup) {
             allSupervisorsFromNomina[sup] = lid;
         }
@@ -762,6 +773,16 @@ function renderDashboard() {
     filtered.forEach(row => {
         const sup = row.supervisor || "Indefinido";
         const lid = row.lider || "Sin Líder";
+        
+        // Excluir grupos OJT y etiquetas de "Operacion" en auditorías
+        const lowerLid = String(lid).toLowerCase();
+        const lowerSup = String(sup).toLowerCase();
+        if (lowerLid.includes("ojt") || lowerLid.includes("operacion") || lowerLid.includes("operación") || lowerLid === "-" || lowerLid === "sin líder") {
+            return;
+        }
+        if (lowerSup.includes("ojt") || lowerSup.includes("operacion") || lowerSup.includes("operación")) {
+            return;
+        }
         
         if (!controlGroups[sup]) {
             controlGroups[sup] = {
