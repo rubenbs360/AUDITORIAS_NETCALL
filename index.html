@@ -556,6 +556,46 @@
 
             <!-- TAB 3: LISTADO -->
             <section id="tab-list" class="tab-pane">
+                <!-- Filtros del Historial -->
+                <div class="card filter-card" style="margin-bottom: 20px;">
+                    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 4px;">
+                        <div class="form-group">
+                            <label for="list-filter-lider">Líder</label>
+                            <select id="list-filter-lider" onchange="renderListTab()">
+                                <option value="TODOS">Todos los Líderes</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="list-filter-supervisor">Supervisor</label>
+                            <select id="list-filter-supervisor" onchange="renderListTab()">
+                                <option value="TODOS">Todos los Supervisores</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="list-filter-tipo">Venta / No Venta</label>
+                            <select id="list-filter-tipo" onchange="renderListTab()">
+                                <option value="TODOS">Todos</option>
+                                <option value="Venta">Venta</option>
+                                <option value="No venta">No venta</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="list-filter-cuartil">Cuartil</label>
+                            <select id="list-filter-cuartil" onchange="renderListTab()">
+                                <option value="TODOS">Todos los Cuartiles</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="list-filter-reg-start">Reg. Desde</label>
+                            <input type="date" id="list-filter-reg-start" onchange="renderListTab()">
+                        </div>
+                        <div class="form-group">
+                            <label for="list-filter-reg-end">Reg. Hasta</label>
+                            <input type="date" id="list-filter-reg-end" onchange="renderListTab()">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card full-width">
                     <div class="card-header search-header">
                         <div>

@@ -943,13 +943,75 @@ function fillSelect(selectElement, setValues, selectedValue, defaultText) {
 // ========================================================
 // RENDERIZADO: LISTADO HISTÓRICO DE AUDITORÍAS
 // ========================================================
+function populateListFilters() {
+    const filterLid = document.getElementById("list-filter-lider");
+    const filterSup = document.getElementById("list-filter-supervisor");
+    const filterCuar = document.getElementById("list-filter-cuartil");
+    
+    if (!filterLid) return;
+    
+    const selectedLid = filterLid.value;
+    const selectedSup = filterSup.value;
+    const selectedCuar = filterCuar.value;
+    
+    const lideres = new Set();
+    const supervisores = new Set();
+    const cuartiles = new Set();
+    
+    auditsData.forEach(row => {
+        if (row.lider) lideres.add(row.lider);
+        if (row.supervisor) supervisores.add(row.supervisor);
+        if (row.cuartil) cuartiles.add(row.cuartil);
+    });
+    
+    fillSelect(filterLid, lideres, selectedLid, "Todos los Líderes");
+    fillSelect(filterSup, supervisores, selectedSup, "Todos los Supervisores");
+    fillSelect(filterCuar, cuartiles, selectedCuar, "Todos los Cuartiles");
+}
+
 function renderListTab() {
     const tbody = document.getElementById("list-tbody");
     
-    // Filtrar auditorías por término de búsqueda
-    let filtered = auditsData;
+    // Población única de filtros del listado
+    populateListFilters();
+    
+    const filterLid = document.getElementById("list-filter-lider").value;
+    const filterSup = document.getElementById("list-filter-supervisor").value;
+    const filterTipo = document.getElementById("list-filter-tipo").value;
+    const filterCuar = document.getElementById("list-filter-cuartil").value;
+    const dateStartVal = document.getElementById("list-filter-reg-start").value;
+    const dateEndVal = document.getElementById("list-filter-reg-end").value;
+    
+    // 1. Filtrar por selectores estructurados
+    let filtered = auditsData.filter(row => {
+        const supVal = row.supervisor || "";
+        const lidVal = row.lider || "";
+        const cuarVal = row.cuartil || "";
+        const callType = row["tipo de llamada"] || row["tipo_llamada"] || "No venta";
+        
+        if (filterLid !== 'TODOS' && lidVal !== filterLid) return false;
+        if (filterSup !== 'TODOS' && supVal !== filterSup) return false;
+        if (filterCuar !== 'TODOS' && cuarVal !== filterCuar) return false;
+        
+        if (filterTipo !== 'TODOS') {
+            if (filterTipo === 'Venta' && callType !== 'Venta') return false;
+            if (filterTipo === 'No venta' && callType === 'Venta') return false;
+        }
+        
+        // Filtrar por rango de fechas de REGISTRO (ej: "2026-07-30 16:19:16")
+        const regVal = row["fecha registro"] || row.fecha_registro || "";
+        if (regVal) {
+            const regDateStr = regVal.split(" ")[0]; // Obtener YYYY-MM-DD
+            if (dateStartVal && regDateStr < dateStartVal) return false;
+            if (dateEndVal && regDateStr > dateEndVal) return false;
+        }
+        
+        return true;
+    });
+    
+    // 2. Filtrar por término de búsqueda (DNI, Nombre, etc.)
     if (listSearchQuery) {
-        filtered = auditsData.filter(row => {
+        filtered = filtered.filter(row => {
             const query = listSearchQuery.toLowerCase();
             return (
                 (row["nombre asesor"] && row["nombre asesor"].toLowerCase().includes(query)) ||
