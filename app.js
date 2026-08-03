@@ -78,6 +78,88 @@ function switchTab(tabId) {
 // ========================================================
 // CARGA Y PARSEO DE GOOGLE SHEETS
 // ========================================================
+// NORMALIZACIÓN Y ENRIQUECIMIENTO DE FECHAS DE NÓMINA
+// ========================================================
+function normalizeNominaDate(fechaStr) {
+    if (!fechaStr) return null;
+    
+    // Si ya tiene formato YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+        return fechaStr;
+    }
+    
+    // Normalizar abreviaturas en español (ej: "1-jul", "10-jul", "1-ago", "3-ago")
+    const cleanStr = String(fechaStr).trim().toLowerCase();
+    const match = cleanStr.match(/^(\d+)-([a-zñáéíóú]+)$/);
+    if (match) {
+        const day = parseInt(match[1], 10);
+        const monthAbbr = match[2];
+        
+        let month = 0;
+        if (monthAbbr.startsWith("ene")) month = 1;
+        else if (monthAbbr.startsWith("feb")) month = 2;
+        else if (monthAbbr.startsWith("mar")) month = 3;
+        else if (monthAbbr.startsWith("abr")) month = 4;
+        else if (monthAbbr.startsWith("may")) month = 5;
+        else if (monthAbbr.startsWith("jun")) month = 6;
+        else if (monthAbbr.startsWith("jul")) month = 7;
+        else if (monthAbbr.startsWith("ago")) month = 8;
+        else if (monthAbbr.startsWith("sep")) month = 9;
+        else if (monthAbbr.startsWith("oct")) month = 10;
+        else if (monthAbbr.startsWith("nov")) month = 11;
+        else if (monthAbbr.startsWith("dic")) month = 12;
+        
+        if (month > 0) {
+            const mm = String(month).padStart(2, "0");
+            const dd = String(day).padStart(2, "0");
+            return `2026-${mm}-${dd}`; // Se asume año corriente
+        }
+    }
+    
+    return null;
+}
+
+function enrichAuditsWithNomina() {
+    if (!nominaData || nominaData.length === 0) return;
+    
+    auditsData.forEach(row => {
+        const dni = String(row["dni asesor"] || row.dniAsesor || row.dni_asesor || "").trim();
+        const auditDate = row["fecha auditoria"] || row.fecha_auditoria || row.fecha || "";
+        
+        if (!dni || !auditDate) return;
+        
+        // Buscar registros de nómina que coincidan con el DNI
+        const matchingNomina = nominaData.filter(n => String(n.documento).trim() === dni);
+        if (matchingNomina.length > 0) {
+            // Buscar coincidencia de fecha exacta normalizada
+            const exactNomina = matchingNomina.find(n => {
+                const normNomina = normalizeNominaDate(n.fecha);
+                return normNomina === auditDate;
+            });
+            
+            let finalNomina = exactNomina;
+            if (!finalNomina) {
+                // Ordenar descendente por fecha normalizada
+                matchingNomina.sort((a, b) => {
+                    const dateA = normalizeNominaDate(a.fecha) || "1970-01-01";
+                    const dateB = normalizeNominaDate(b.fecha) || "1970-01-01";
+                    return dateB.localeCompare(dateA);
+                });
+                finalNomina = matchingNomina[0];
+            }
+            
+            if (finalNomina) {
+                // Enriquecer y corregir dinámicamente los campos en la vista local
+                row.supervisor = finalNomina.sup || row.supervisor;
+                row.lider = finalNomina.lider || finalNomina.líder || row.lider;
+                row.cuartil = finalNomina.cuartil_inicio_mes || finalNomina["cuartil inicio mes"] || row.cuartil;
+                row.antiguedad = finalNomina.antigüedad || finalNomina.antiguedad || row.antiguedad;
+            }
+        }
+    });
+}
+
+// ========================================================
 async function loadDatabase() {
     const statusBadge = document.getElementById("sheet-status");
     try {
@@ -100,6 +182,9 @@ async function loadDatabase() {
             const rawCsv = await resAudits.text();
             auditsData = parseCSV(rawCsv);
             console.log("Auditorías cargadas:", auditsData.length, "registros");
+            
+            // Enriquecer los datos de las auditorías con los metadatos históricos de la nómina correspondientes a su fecha
+            enrichAuditsWithNomina();
         }
 
         statusBadge.innerText = "● Sincronizado";
@@ -245,17 +330,23 @@ function selectAdvisor(dni, dateValue) {
     // Buscar el registro específico para el DNI y la Fecha en la nómina
     const matchingRecords = nominaData.filter(item => String(item.documento).trim() === dni);
     
+    if (matchingRecords.length === 0) return;
+    
     let finalRecord = null;
     const exactDateMatch = matchingRecords.find(item => {
-        if (!item.fecha) return false;
-        return item.fecha.split(" ")[0] === dateValue;
+        const normalizedItemDate = normalizeNominaDate(item.fecha);
+        return normalizedItemDate === dateValue;
     });
     
     if (exactDateMatch) {
         finalRecord = exactDateMatch;
     } else {
-        // Fallback al más reciente
-        matchingRecords.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+        // Fallback al más reciente por orden de fecha normalizada
+        matchingRecords.sort((a, b) => {
+            const dateA = normalizeNominaDate(a.fecha) || "1970-01-01";
+            const dateB = normalizeNominaDate(b.fecha) || "1970-01-01";
+            return dateB.localeCompare(dateA); // Más reciente primero
+        });
         finalRecord = matchingRecords[0];
     }
     
