@@ -827,7 +827,8 @@ function renderDashboard() {
     const controlGroups = {};
     
     // 1. Inicializar con todos los supervisores y líderes existentes en la Nómina (para que salgan con 0)
-    const allSupervisorsFromNomina = {};
+    // Usamos votación por mayoría y filtramos por la fecha del dashboard para evitar cruces históricos o errores tipográficos en el Sheet
+    const supLeaderVotes = {};
     nominaData.forEach(row => {
         const sup = row.sup || row.supervisor;
         const lid = row.lider || row.líder || "Sin Líder";
@@ -843,8 +844,31 @@ function renderDashboard() {
         }
         
         if (sup) {
-            allSupervisorsFromNomina[sup] = lid;
+            // Filtrar la nómina por el rango de fecha seleccionado en el dashboard
+            const normDate = normalizeNominaDate(row.fecha);
+            if (normDate) {
+                if (dateStartVal && normDate < dateStartVal) return;
+                if (dateEndVal && normDate > dateEndVal) return;
+            }
+            
+            if (!supLeaderVotes[sup]) {
+                supLeaderVotes[sup] = {};
+            }
+            supLeaderVotes[sup][lid] = (supLeaderVotes[sup][lid] || 0) + 1;
         }
+    });
+    
+    const allSupervisorsFromNomina = {};
+    Object.entries(supLeaderVotes).forEach(([sup, votes]) => {
+        let bestLeader = "Sin Líder";
+        let maxVotes = -1;
+        Object.entries(votes).forEach(([lid, count]) => {
+            if (count > maxVotes) {
+                maxVotes = count;
+                bestLeader = lid;
+            }
+        });
+        allSupervisorsFromNomina[sup] = bestLeader;
     });
     
     Object.entries(allSupervisorsFromNomina).forEach(([sup, lid]) => {
